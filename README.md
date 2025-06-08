@@ -1,2 +1,1 @@
-# ResNet18
-# ressent18
+resnet18
