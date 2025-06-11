@@ -66,6 +66,7 @@ def get_args():
     parser.add_argument("--track", action="store_true", help="Enable Weights & Biases tracking")
     parser.add_argument("--checkpoint", type=str, default=None, help="Path to checkpoint to resume training")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--patience", type=int, default=5, help="Patience for learning rate scheduler")
 
     return parser.parse_args()
 
@@ -344,8 +345,14 @@ def train(args, model, device):
         params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay, momentum=args.momentum
     )
 
+    """
+    optimizer =torch.optim.Adam(
+        params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
+    """
+
     criterion = nn.CrossEntropyLoss()
-    scheduler = ReduceLROnPlateau(optimizer, mode='max')
+    scheduler = ReduceLROnPlateau(optimizer, patience=args.patience, mode='max')
 
     last_epoch = 0
 
@@ -356,7 +363,10 @@ def train(args, model, device):
         last_epoch = checkpoint["epoch"]
 
         print(f"Resuming from epoch {last_epoch}")
-    for epoch in range(last_epoch, args.epochs + 1):
+    
+    timestamp = str(int(time()))
+
+    for epoch in range(last_epoch+1, args.epochs + 1):
 
         running_loss = 0.0
         running_accuracy = 0.0
@@ -400,7 +410,6 @@ def train(args, model, device):
             logger.add_scalar("val_loss", val_loss, epoch)
             logger.add_scalar("val_accuracy", val_accuracy, epoch)
 
-        timestamp = str(int(time()))
         save_dir = os.path.join("checkpoints", timestamp)
         os.makedirs(save_dir, exist_ok=True)
         checkpoint_path = f"checkpoint_epoch_{epoch}.pth"
